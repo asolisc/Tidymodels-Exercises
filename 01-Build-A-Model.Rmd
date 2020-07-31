@@ -1,0 +1,29 @@
+---
+title: "Tidymodels -- Build A Model"
+description: |
+  A new article created using the Distill format.
+author:
+  - name: Nora Jones 
+    url: https://example.com/norajones
+    affiliation: Spacely Sprockets
+    affiliation_url: https://example.com/spacelysprokets
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+```
+
+
+```{r}
+expand.grid(initial_volume = c(20,40),
+            food_regime = c("Ini","low","high"))
+```
+

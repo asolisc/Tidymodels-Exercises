@@ -1,0 +1,95 @@
+---
+title: "Tidymodels -- Preprocess your data with recipes"
+description: |
+  A summary of the tidymodels.org webpage
+author:
+  - name: Alexis Solis 
+    url: alexis.solisc@gmail.com
+    # affiliation: Spacely Sprockets
+    # affiliation_url: https://example.com/spacelysprokets
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+The `recipes` package is useful in modeing for the preprocessing stage. It helps you with _feature extraction_ and _feature creation_. Recipes are useful for:
+
+1. Creating dummy variables.
+
+2. Transforming your data (e.g. changing to logarithmic scale).
+
+3. Feature extraction - extracting key features from raw variables.
+
+
+```{r}
+library(tidymodels)      # for the recipes package, along with the rest of tidymodels
+library(tidyverse)
+
+# Helper packages
+library(nycflights13)    # for flight data
+library(skimr)           # for variable summaries
+library(gt)              # for creating tables.
+```
+
+## The New York City flight data
+
+First we load the data and make some changes to the variables:
+
+```{r}
+set.seed(123)
+
+
+flight_data <- 
+  flights %>%
+  mutate(
+    
+    # Convert the arrival delay to a factor:
+    arr_delay = ifelse(arr_delay >= 30, "late", "on_time"),
+    arr_delay = factor(arr_delay),
+    
+    # We will use the date (not date-time) in the recipe below:
+    date = as.Date(time_hour)
+  ) %>% 
+  
+  # Include the weather data. This is done with an inner_join:
+  inner_join(weather, by = c("origin", "time_hour")) %>% 
+  
+  # Only retain useful columns for the analysis:
+  select(dep_time, flight, origin, dest, air_time, distance,
+         carrier, date, arr_delay, time_hour) %>% 
+  
+  # Exclude missing data:
+  drop_na() %>%
+  
+  # For creating models, it's better to have qualitative columns
+  # encoded as factors (not as strings):
+  
+  mutate_if(is.character, as.factor)
+```
+
+We can get the percentage of flights that arrived late:
+
+```{r}
+flight_data %>% 
+  count(arr_delay) %>% 
+  mutate(prop = n/sum(n))
+```
+We see that 16% of flights were delayed more than 30 minutes. Since we're doing a logistic regression model, it's important that the response variable is coded as a factor (`fct`). We can check this with the `glimpse()` function:
+
+```{r}
+flight_data %>% 
+  glimpse()
+```
+We can use the `skim()` function from the `skimr` package to get a summary of our data. Here we use it to explore two columns: `dest` and `carrier`. From the output, we see that `n_unique` has 104 for `dest` and 16 for carrier (i.e. there are 16 different carriers and 104 different destinations in the dataset).
+
+```{r}
+flight_data %>% 
+  skimr::skim(dest, carrier)
+```
+
+Our model will be a simple logistic regression, so we will need to convert some variables to `dummy` variables.
+
+# DATA SPLITTING
